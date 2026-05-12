@@ -72,6 +72,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 # analyse.ipynb ausführen, dann:
 uvicorn api:app --reload
+</details>
 
 
 ## 📡 API Dokumentation
