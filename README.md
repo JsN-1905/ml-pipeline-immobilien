@@ -33,6 +33,7 @@ ml-pipeline-immobilien/
 ## 🚀 Live testen
 
 Die API läuft live auf Render.com – kein Setup nötig.
+(Bald kommt eine interaktive Karte und benutzeroberfläche hinzu.)
 
 ⚠️ Hinweis: Render.com fährt inaktive Services nach einigen Minuten herunter. Beim ersten Aufruf kann es 20–30 Sekunden dauern bis die API antwortet – einfach kurz warten.
 
