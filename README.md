@@ -30,34 +30,49 @@ ml-pipeline-immobilien/
 ├── requirements.txt   # Abhängigkeiten
 └── README.md
 
-## 🚀 Installation & Start
+## 🚀 Live testen
 
-**1. Repository klonen**
-```bash
-git clone https://github.com/JsN-1905/ml-pipeline-immobilien.git
+Die API läuft live auf Render.com – kein Setup nötig.
+
+⚠️ Hinweis: Render.com fährt inaktive Services nach einigen Minuten herunter. Beim ersten Aufruf kann es 20–30 Sekunden dauern bis die API antwortet – einfach kurz warten.
+
+
+Schritt-für-Schritt: Immobilienpreis vorhersagen
+Schritt 1 – API-Dokumentation öffnen
+Gehe auf: https://ml-pipeline-immobilien.onrender.com/docs
+Man sieht eine interaktive Oberfläche mit allen verfügbaren Endpunkten.
+
+Schritt 2 – Endpunkt öffnen
+Auf POST /vorhersage und dann auf den Button „Try it out" (oben rechts im Abschnitt) klicken.
+
+Schritt 3 – Beispieldaten einfügen
+Den Inhalt im Textfeld mit folgendem Beispiel ersetzen (ein Haus in San Francisco):
+json{
+  "MedInc": 8.3252,
+  "HouseAge": 41.0,
+  "AveRooms": 6.984127,
+  "AveBedrms": 1.023810,
+  "Population": 322.0,
+  "AveOccup": 2.555556,
+  "Latitude": 37.88,
+  "Longitude": -122.23
+}
+
+Schritt 4 – Ausführen & Ergebnis lesen
+Klicke auf „Execute". Die API antwortet mit dem vorhergesagten Preis:
+
+
+Lokale Installation (optional)
+<details>
+<summary>Für Entwickler – lokal ausführen</summary>
+bashgit clone https://github.com/JsN-1905/ml-pipeline-immobilien.git
 cd ml-pipeline-immobilien
-```
-
-**2. Virtuelle Umgebung erstellen**
-```bash
 python3 -m venv venv
 source venv/bin/activate
-```
-
-**3. Pakete installieren**
-```bash
 pip install -r requirements.txt
-```
-
-**4. Modell trainieren**
-
-Öffne `analyse.ipynb` in VS Code und führe alle Zellen aus.
-Das trainierte Modell wird als `modell.pkl` gespeichert.
-
-**5. API starten**
-```bash
+# analyse.ipynb ausführen, dann:
 uvicorn api:app --reload
-```
+
 
 ## 📡 API Dokumentation
 
