@@ -46,9 +46,9 @@ Man sieht eine interaktive Oberfläche mit allen verfügbaren Endpunkten.
 Schritt 2 – Endpunkt öffnen
 Auf POST /vorhersage und dann auf den Button „Try it out" (oben rechts im Abschnitt) klicken.
 
-Schritt 3 – Beispieldaten einfügen
-Den Inhalt im Textfeld mit folgendem Beispiel ersetzen (ein Haus in San Francisco):
-json{
+Schritt 3 – Beispieldaten einfügen (ein Haus in San Francisco) oder eigene Werte erfinden
+Den Inhalt im Textfeld mit folgendem Beispiel ersetzen (mit Klammern kopieren und im Textfeld ersetzen):
+{
   "MedInc": 8.3252,
   "HouseAge": 41.0,
   "AveRooms": 6.984127,
