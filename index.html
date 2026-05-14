@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>California Immo Predictor</title>
+
+  <!-- Leaflet – Open Source, BSD-2-Clause Lizenz -->
+  <!-- Lizenz: https://github.com/Leaflet/leaflet/blob/main/LICENSE -->
+  <!-- Einbindung: https://leafletjs.com/examples/quick-start/ -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+  <!-- Google Fonts – kostenlos, SIL Open Font License -->
+  <!-- Lizenz: https://fonts.google.com/knowledge/glossary/licensing -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+
+    body { font-family: 'Inter', sans-serif; background: #e8eef5; height: 100vh; overflow: hidden; }
+
+    #map { position: fixed; inset: 0; z-index: 0; }
+
+    /* ── Disclaimer Overlay ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 9000;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .disclaimer {
+      background: #fff; border-radius: 20px;
+      max-width: 480px; width: 100%;
+      padding: 28px 28px 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .disclaimer-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 8px; padding: 4px 10px;
+      font-size: 11px; font-weight: 500; color: #1d4ed8;
+      margin-bottom: 14px;
+    }
+    .disclaimer h2 { font-size: 17px; font-weight: 600; color: #0f172a; margin-bottom: 12px; line-height: 1.3; }
+    .disclaimer p  { font-size: 13px; color: #475569; line-height: 1.65; margin-bottom: 10px; }
+    .disclaimer p:last-of-type { margin-bottom: 0; }
+    .disclaimer strong { font-weight: 600; color: #0f172a; }
+    .divider { height: 1px; background: #f1f5f9; margin: 16px 0; }
+    .sources-label {
+      font-size: 11px; font-weight: 600; color: #94a3b8;
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .source-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; }
+    .source-name { font-size: 12px; font-weight: 500; color: #0f172a; min-width: 150px; flex-shrink: 0; }
+    .source-link { font-size: 11px; color: #185fa5; text-decoration: none; word-break: break-all; }
+    .source-link:hover { text-decoration: underline; }
+    .disclaimer-btn {
+      width: 100%; margin-top: 18px; padding: 11px;
+      background: #185fa5; color: #fff; border: none; border-radius: 11px;
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .disclaimer-btn:hover { opacity: 0.88; }
+
+    /* ── Panel ── */
+    .panel {
+      position: fixed; top: 16px; right: 16px; bottom: 16px; width: 308px; z-index: 1000;
+      background: rgba(240,245,252,0.62);
+      backdrop-filter: blur(24px) saturate(1.6);
+      -webkit-backdrop-filter: blur(24px) saturate(1.6);
+      border: 1px solid rgba(255,255,255,0.65);
+      border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.75);
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 16px 14px;
+      overflow-y: auto; overflow-x: visible;
+      scrollbar-width: none;
+    }
+    .panel::-webkit-scrollbar { display: none; }
+    .panel-title { font-size: 15px; font-weight: 600; color: #0f172a; padding-bottom: 4px; }
+
+    .card {
+      background: rgba(255,255,255,0.58);
+      border: 1px solid rgba(255,255,255,0.78);
+      border-radius: 14px; padding: 12px 13px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
+    }
+    .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .card-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: rgba(255,255,255,0.75); border: 1px solid rgba(0,0,0,0.06);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .card-label { font-size: 13px; font-weight: 600; color: #0f172a; }
+
+    .field { margin-bottom: 9px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-label { font-size: 10.5px; color: rgba(15,23,42,0.5); margin-bottom: 5px; }
+    .field-row { display: flex; align-items: center; gap: 8px; padding: 0 2px; }
+
+    input[type=range] {
+      flex: 1; -webkit-appearance: none; appearance: none;
+      height: 3px; background: rgba(15,23,42,0.12);
+      border-radius: 2px; outline: none; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #185fa5; border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2); cursor: pointer;
+    }
+    input[type=range]::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #185fa5; border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2); cursor: pointer;
+    }
+
+    .num-input {
+      width: 58px; height: 27px;
+      border: 1px solid rgba(0,0,0,0.12); border-radius: 8px;
+      font-family: 'Inter', sans-serif; font-size: 12px;
+      text-align: center; color: #0f172a;
+      background: rgba(255,255,255,0.85); padding: 0 4px; flex-shrink: 0;
+    }
+    .num-input:focus { outline: none; border-color: #185fa5; }
+
+    .coords-row { display: flex; align-items: center; justify-content: space-between; padding: 3px 0; }
+    .coords-label { font-size: 10.5px; color: rgba(15,23,42,0.5); }
+    .coords-val   { font-size: 12px; font-weight: 500; color: #0f172a; font-family: 'Courier New', monospace; }
+    .map-hint     { font-size: 10px; color: rgba(15,23,42,0.38); margin-top: 6px; }
+
+    .bounds-warning {
+      background: rgba(255,237,213,0.9); border: 1px solid rgba(234,88,12,0.3);
+      border-radius: 10px; padding: 7px 10px;
+      font-size: 11px; color: #9a3412; display: none;
+    }
+
+    .btn {
+      width: 100%; padding: 10px; background: #185fa5; color: #fff;
+      border: none; border-radius: 11px;
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+      cursor: pointer; box-shadow: 0 2px 10px rgba(24,95,165,0.3);
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:hover   { opacity: 0.88; }
+    .btn:active  { opacity: 0.75; transform: scale(0.98); }
+    .btn:disabled{ opacity: 0.45; cursor: wait; }
+
+    .status-card {
+      background: rgba(255,255,255,0.58); border: 1px solid rgba(255,255,255,0.78);
+      border-radius: 14px; padding: 10px 13px;
+      display: none; flex-direction: column; gap: 5px;
+    }
+    .status-row { display: flex; align-items: center; gap: 7px; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.running { background: #f59e0b; animation: blink 1s infinite; }
+    .status-dot.waiting { background: #3b82f6; animation: blink 0.7s infinite; }
+    .status-dot.done    { background: #22c55e; }
+    .status-dot.error   { background: #ef4444; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+    .status-text { font-size: 12px; font-weight: 500; color: #0f172a; }
+    .status-sub  { font-size: 10px; color: rgba(15,23,42,0.45); padding-left: 14px; }
+    .progress-bar { height: 2px; background: rgba(0,0,0,0.08); border-radius: 2px; overflow: hidden; margin-top: 3px; }
+    .progress-fill { height: 100%; background: #185fa5; width: 0%; transition: width 0.4s ease; border-radius: 2px; }
+
+    .result-card {
+      background: rgba(224,239,255,0.75); border: 1px solid rgba(24,95,165,0.22);
+      border-radius: 14px; padding: 12px 13px; display: none;
+    }
+    .result-label { font-size: 10px; color: #185fa5; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 3px; }
+    .result-price { font-size: 28px; font-weight: 600; color: #0c447c; line-height: 1.1; }
+    .result-meta  { font-size: 11px; color: #378add; margin-top: 3px; }
+    .result-bar   { height: 2px; background: rgba(24,95,165,0.15); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+    .result-bar-fill { height: 100%; background: #185fa5; width: 0%; transition: width 0.8s ease; border-radius: 2px; }
+
+    .leaflet-control-attribution { font-size: 10px !important; background: rgba(255,255,255,0.75) !important; }
+  </style>
+</head>
+<body>
+
+<!-- ── Disclaimer ── -->
+<div class="overlay" id="overlay">
+  <div class="disclaimer">
+    <div class="disclaimer-badge">📋 Wichtiger Hinweis</div>
+    <h2>California Immo Predictor – Lernprojekt</h2>
+    <p>
+      Diese Anwendung ist ein <strong>nicht-kommerzielles Lernprojekt</strong> zur Demonstration
+      einer End-to-End Machine-Learning-Pipeline, entwickelt im Rahmen eines
+      Wirtschaftsinformatik-Studiums.
+    </p>
+    <p>
+      Die Vorhersagen basieren auf dem <strong>California Housing Dataset von 1990</strong>
+      (StatLib / UCI Machine Learning Repository) und spiegeln keine aktuellen
+      Immobilienpreise wider. Die Ergebnisse dienen ausschließlich zu
+      Demonstrationszwecken und stellen <strong>keine Kauf-, Miet- oder
+      Investitionsberatung</strong> dar.
+    </p>
+    <p>
+      Es werden <strong>keine personenbezogenen Daten</strong> erhoben oder gespeichert.
+      Die Anwendung verfolgt keinerlei kommerzielle Absichten.
+    </p>
+    <div class="divider"></div>
+    <div class="sources-label">Quellen &amp; Lizenzen</div>
+    <div class="source-row">
+      <span class="source-name">OpenStreetMap (Karte)</span>
+      <a class="source-link" href="https://www.openstreetmap.org/copyright" target="_blank">openstreetmap.org/copyright</a>
+    </div>
+    <div class="source-row">
+      <span class="source-name">Leaflet (Kartenbibliothek)</span>
+      <a class="source-link" href="https://github.com/Leaflet/leaflet/blob/main/LICENSE" target="_blank">github.com/Leaflet – BSD-2-Clause</a>
+    </div>
+    <div class="source-row">
+      <span class="source-name">California Housing Dataset</span>
+      <a class="source-link" href="https://scikit-learn.org/stable/datasets/real_world.html#california-housing-dataset" target="_blank">scikit-learn.org/datasets</a>
+    </div>
+    <div class="source-row">
+      <span class="source-name">Google Fonts (Inter)</span>
+      <a class="source-link" href="https://fonts.google.com/knowledge/glossary/licensing" target="_blank">fonts.google.com – SIL OFL</a>
+    </div>
+    <button class="disclaimer-btn" onclick="document.getElementById('overlay').style.display='none'">
+      Verstanden – zur Anwendung
+    </button>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<div class="panel">
+  <div class="panel-title">Immobilienpreis-Vorhersage</div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-icon">🏡</div><span class="card-label">Immobilie</span></div>
+    <div class="field">
+      <div class="field-label">HouseAge – Medianes Alter der Häuser (Jahre)</div>
+      <div class="field-row"><input type="range" id="sl-age" min="1" max="52" step="1" value="20"><input type="number" id="n-age" class="num-input" value="20"></div>
+    </div>
+    <div class="field">
+      <div class="field-label">AveRooms – Ø Zimmer pro Haushalt</div>
+      <div class="field-row"><input type="range" id="sl-rooms" min="1" max="20" step="0.1" value="5"><input type="number" id="n-rooms" class="num-input" value="5.0"></div>
+    </div>
+    <div class="field">
+      <div class="field-label">AveBedrms – Ø Schlafzimmer pro Haushalt</div>
+      <div class="field-row"><input type="range" id="sl-beds" min="0.5" max="5" step="0.1" value="1"><input type="number" id="n-beds" class="num-input" value="1.0"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-icon">📊</div><span class="card-label">Demographie</span></div>
+    <div class="field">
+      <div class="field-label">Population – Bevölkerung im Bezirk</div>
+      <div class="field-row"><input type="range" id="sl-pop" min="3" max="35000" step="1" value="1500"><input type="number" id="n-pop" class="num-input" value="1500"></div>
+    </div>
+    <div class="field">
+      <div class="field-label">AveOccup – Ø Bewohner pro Haushalt</div>
+      <div class="field-row"><input type="range" id="sl-occ" min="1" max="10" step="0.1" value="2.5"><input type="number" id="n-occ" class="num-input" value="2.5"></div>
+    </div>
+    <div class="field">
+      <div class="field-label">MedInc – Medianeinkommen (× 10.000 $)</div>
+      <div class="field-row"><input type="range" id="sl-inc" min="0.5" max="15" step="0.1" value="5"><input type="number" id="n-inc" class="num-input" value="5.0"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-icon">📍</div><span class="card-label">Standort</span></div>
+    <div class="coords-row">
+      <span class="coords-label">Latitude – Breitengrad</span>
+      <span class="coords-val" id="disp-lat">37.5000</span>
+    </div>
+    <div class="coords-row">
+      <span class="coords-label">Longitude – Längengrad</span>
+      <span class="coords-val" id="disp-lng">-119.5000</span>
+    </div>
+    <div class="map-hint">📍 Klick auf die Karte setzt den Standort automatisch</div>
+  </div>
+
+  <div class="bounds-warning" id="boundsWarning">
+    ⚠️ Dieser Punkt liegt außerhalb Kaliforniens. Die Vorhersage könnte ungenau sein.
+  </div>
+
+  <button class="btn" id="predictBtn" onclick="predict()">Preis berechnen</button>
+
+  <div class="status-card" id="statusCard">
+    <div class="status-row">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-text" id="statusText"></span>
+    </div>
+    <div class="status-sub" id="statusSub"></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-label">Vorhergesagter Marktwert</div>
+    <div class="result-price" id="resultPrice">—</div>
+    <div class="result-meta">Modell R² 0.85 · MAE ±29.000 $ · Daten: California Housing 1990</div>
+    <div class="result-bar"><div class="result-bar-fill" id="resultBar"></div></div>
+  </div>
+</div>
+
+<script>
+  /* ── Kartengrenzen: Dataset-Bereich Kalifornien ── */
+  const CA_BOUNDS = L.latLngBounds(L.latLng(32.5,-124.5), L.latLng(42.0,-114.3));
+  let lat = 37.5, lng = -119.5;
+
+  const map = L.map('map', {
+    maxBounds: CA_BOUNDS,
+    maxBoundsViscosity: 0.9,
+    minZoom: 5,
+    maxZoom: 14
+  }).setView([37.5,-119.5], 6);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 14
+  }).addTo(map);
+
+  const markerIcon = L.divIcon({
+    html: `<div style="width:16px;height:16px;background:#185fa5;border:2.5px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.25)"></div>`,
+    iconSize:[16,16], iconAnchor:[8,8], className:''
+  });
+  let marker = null;
+
+  map.on('click', e => {
+    lat = parseFloat(e.latlng.lat.toFixed(4));
+    lng = parseFloat(e.latlng.lng.toFixed(4));
+    document.getElementById('disp-lat').textContent = lat.toFixed(4);
+    document.getElementById('disp-lng').textContent = lng.toFixed(4);
+    if (marker) map.removeLayer(marker);
+    marker = L.marker([lat,lng],{icon:markerIcon}).addTo(map);
+    document.getElementById('boundsWarning').style.display =
+      CA_BOUNDS.contains(e.latlng) ? 'none' : 'block';
+  });
+
+  /* ── Slider ↔ Zahlenfeld ── */
+  [['sl-age','n-age',true],['sl-rooms','n-rooms',false],['sl-beds','n-beds',false],
+   ['sl-pop','n-pop',true],['sl-occ','n-occ',false],['sl-inc','n-inc',false]
+  ].forEach(([sl,ni,isInt]) => {
+    const slider=document.getElementById(sl), num=document.getElementById(ni);
+    slider.addEventListener('input', () => {
+      num.value = isInt ? Math.round(parseFloat(slider.value)) : parseFloat(slider.value).toFixed(1);
+    });
+    num.addEventListener('change', () => {
+      let v = parseFloat(num.value);
+      if (isNaN(v)) return;
+      if (isInt) v = Math.round(v);
+      v = Math.min(Math.max(v, parseFloat(slider.min)), parseFloat(slider.max));
+      slider.value = v;
+      num.value = isInt ? v : v.toFixed(1);
+    });
+  });
+
+  /* ── Status ── */
+  function setStatus(state, text, sub, progress) {
+    document.getElementById('statusCard').style.display = 'flex';
+    document.getElementById('statusDot').className = 'status-dot ' + state;
+    document.getElementById('statusText').textContent = text;
+    document.getElementById('statusSub').textContent = sub;
+    document.getElementById('progressFill').style.width = progress + '%';
+  }
+
+  /* ── Vorhersage ── */
+  async function predict() {
+    const btn = document.getElementById('predictBtn');
+    btn.disabled = true;
+    document.getElementById('resultCard').style.display = 'none';
+    setStatus('running','Anfrage wird vorbereitet…','Parameter werden validiert',10);
+    await new Promise(r => setTimeout(r,350));
+    setStatus('waiting','Warte auf API…','Server wird aufgeweckt – bis zu 50 Sek. beim ersten Aufruf',25);
+
+    let prog = 25;
+    const iv = setInterval(() => {
+      prog = Math.min(prog+0.6, 88);
+      document.getElementById('progressFill').style.width = prog + '%';
+    }, 500);
+
+    const start = Date.now();
+    const payload = {
+      MedInc:     parseFloat(document.getElementById('sl-inc').value),
+      HouseAge:   parseInt(document.getElementById('sl-age').value),
+      AveRooms:   parseFloat(document.getElementById('sl-rooms').value),
+      AveBedrms:  parseFloat(document.getElementById('sl-beds').value),
+      Population: parseInt(document.getElementById('sl-pop').value),
+      AveOccup:   parseFloat(document.getElementById('sl-occ').value),
+      Latitude: lat, Longitude: lng
+    };
+
+    try {
+      const res  = await fetch('https://ml-pipeline-immobilien.onrender.com/vorhersage',{
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+      });
+      const data = await res.json();
+      clearInterval(iv);
+      setStatus('done','Berechnung abgeschlossen','Antwortzeit: '+((Date.now()-start)/1000).toFixed(1)+' Sek.',100);
+      const preis = data.preis_dollar;
+      document.getElementById('resultCard').style.display = 'block';
+      document.getElementById('resultPrice').textContent = '$'+Math.round(preis).toLocaleString('de-DE');
+      document.getElementById('resultBar').style.width = Math.min((preis/800000)*100,100).toFixed(1)+'%';
+    } catch(err) {
+      clearInterval(iv);
+      setStatus('error','API nicht erreichbar','Bitte 50 Sek. warten und erneut versuchen.',0);
+    }
+    btn.disabled = false;
+    btn.textContent = 'Preis berechnen';
+  }
+</script>
+</body>
+</html>
