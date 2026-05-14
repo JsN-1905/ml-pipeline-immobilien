@@ -1,15 +1,19 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
 import pandas as pd
 
-# Modell laden
 modell = joblib.load('modell.pkl')
-
-# API erstellen
 app = FastAPI()
 
-# Eingabeformat definieren
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class Immobilie(BaseModel):
     MedInc: float
     HouseAge: float
@@ -20,7 +24,6 @@ class Immobilie(BaseModel):
     Latitude: float
     Longitude: float
 
-# Route erstellen
 @app.get("/")
 def startseite():
     return {"nachricht": "Immobilienpreis API läuft! ✅"}
